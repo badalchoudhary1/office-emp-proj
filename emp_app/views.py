@@ -1,13 +1,18 @@
 from django.shortcuts import HttpResponse
 from .models import Role,Department,Employee
 from datetime import datetime
-from django.shortcuts import render
 from django.db.models import Q
+from django.shortcuts import render, redirect
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login, logout
+from .forms import UserRegisterForm
+from django.contrib.auth.decorators import login_required
 # Create your views here.
+@login_required
 def index(request):
     return render(request,'index.html')
 
-
+@login_required
 def all_emp(request):
     emps=Employee.objects.all()
     context={
@@ -17,7 +22,7 @@ def all_emp(request):
     print(context)
     return render(request,'view_all_emp.html',context)
 
-
+@login_required
 def add_emp(request):
     if request.method == 'POST':
         first_name = request.POST['first_name']
@@ -44,7 +49,7 @@ def add_emp(request):
         return render(request, 'add_emp.html')
     else:
         return HttpResponse("Invalid request method")
-
+@login_required
 def remove_emp(request,emp_id=0):
     if emp_id:
         try:
@@ -60,7 +65,7 @@ def remove_emp(request,emp_id=0):
     }
     return render(request,'remove_emp.html',context)
 
-
+@login_required
 def filter_emp(request):
     if request.method =='POST':
         name=request.POST['name']
@@ -83,3 +88,32 @@ def filter_emp(request):
         return render(request, 'view_all_emp.html', context)
     
     return render(request, 'filter_emp.html')
+
+
+# Registration view
+def register(request):
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = UserRegisterForm()
+    return render(request, 'register.html', {'form': form})
+
+# Login view
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('index')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'login.html', {'form': form})
+
+# Logout view
+def logout_view(request):
+    logout(request)
+    return redirect('login')
